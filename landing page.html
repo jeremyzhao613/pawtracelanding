@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>PAW TRACE - 智能宠物生活平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&amp;family=Rajdhani:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet"/>
+    <style>
+        :root {
+            --primary-500: #f97316;
+            --primary-600: #ea580c;
+            --primary-700: #c2410c;
+            --accent-500: #66bb6a;
+            --accent-600: #4caf50;
+            --accent-700: #388e3c;
+            --neutral-100: #f5f5f5;
+            --neutral-200: #e5e5e5;
+            --neutral-300: #d4d4d4;
+            --neutral-400: #a3a3a3;
+            --neutral-800: #1f2937;
+            --neutral-900: #111827;
+            --cute-pink: #f8c4d9;
+            --cute-peach: #fde9c3;
+            --cute-mint: #a8e6cf;
+            --cute-lavender: #d9c2f0;
+            --cute-chocolate: #5a3e36;
+            /* 新增：最后页面的可爱配色 */
+            --cute-purple: #b8a9e9;
+            --cute-blue: #6dc0ff;
+            --cute-yellow: #ffe995;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background-color: var(--neutral-100);
+            color: var(--neutral-900);
+            overflow-x: hidden;
+        }
+
+        .pixel-font {
+            font-family: 'Orbitron', monospace;
+        }
+
+        .pixel-btn {
+            background-color: var(--primary-500);
+            color: white;
+            border: 3px solid var(--primary-700);
+            box-shadow: 0 4px 0 var(--primary-700);
+            transition: all 0.1s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .pixel-btn:hover {
+            background-color: var(--primary-600);
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 var(--primary-700);
+        }
+
+        .pixel-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        .pixel-card {
+            background-color: white;
+            border: 4px solid var(--neutral-200);
+            box-shadow: 4px 4px 0 var(--neutral-300);
+            position: relative;
+        }
+
+        .pixel-card::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            right: -8px;
+            bottom: -8px;
+            border: 2px solid var(--neutral-300);
+            pointer-events: none;
+        }
+
+        .pixel-icon {
+            width: 48px;
+            height: 48px;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
+        .hero-bg {
+            background: linear-gradient(135deg, var(--cute-pink) 0%, var(--cute-peach) 100%);
+            position: relative;
+        }
+
+        .hero-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,.2) 35px, rgba(255,255,255,.2) 70px),
+                repeating-linear-gradient(-45deg, transparent, transparent 35px, rgba(255,182,193,.15) 35px, rgba(255,182,193,.15) 70px);
+            pointer-events: none;
+        }
+
+        .animated-pixel {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: linear-gradient(45deg, var(--primary-600), var(--accent-600));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .toc {
+            position: fixed;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 50;
+            background: rgba(255, 255, 255, 0.95);
+            border: 3px solid var(--neutral-300);
+            padding: 1rem;
+            border-radius: 0 12px 12px 0;
+            box-shadow: 4px 4px 0 var(--neutral-400);
+            max-width: 200px;
+        }
+
+        .toc a {
+            display: block;
+            padding: 0.5rem;
+            color: var(--neutral-800);
+            text-decoration: none;
+            border-bottom: 1px solid var(--neutral-200);
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .toc a:hover {
+            background-color: var(--primary-500);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .gsap-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        #map {
+            z-index: 1;
+        }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+            border: 2px solid var(--primary-500);
+        }
+
+        .leaflet-popup-content {
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        .cute-btn {
+            background-color: #ff85a2;
+            color: white;
+            border: 3px solid #d4627d;
+            box-shadow: 0 4px 0 #d4627d;
+            transition: all 0.1s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        .cute-btn:hover {
+            background-color: #ff6b8a;
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #d4627d;
+        }
+
+        .cute-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        /* 新增：宠物档案卡片样式 */
+        .pet-profile-card {
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 3px solid #e9d5ff;
+            box-shadow: 0 5px 15px rgba(184, 169, 233, 0.2);
+        }
+
+        .pet-profile-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(184, 169, 233, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .toc {
+                display: none;
+            }
+            .section-title {
+                font-size: 1.75rem;
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .hero-bg .container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            .hero-bg h1 {
+                font-size: 2.5rem;
+            }
+            .hero-bg p {
+                font-size: 1rem;
+            }
+            .hero-bg .grid img {
+                height: auto;
+            }
+            .pixel-card .grid-cols-1 {
+                grid-template-columns: 1fr;
+            }
+            #map {
+                height: 250px;
+            }
+        }
+    </style>
+  <base href="https://subthalamic-prolately-alfonso.ngrok-free.dev" target="_blank"/>
+</head>
+
+  <body>
+    <!-- 目录导航 -->
+    <nav class="toc">
+      <div class="pixel-font text-sm font-bold mb-3 text-center">目录</div>
+      <a href="#hero">品牌故事</a>
+      <a href="#brand-story">核心理念</a>
+      <a href="#feature-health">健康管理</a>
+      <a href="#feature-social">社交互动</a>
+      <a href="#feature-route">路线规划</a>
+      <a href="#cta">立即下载</a>
+    </nav>
+
+    <!-- Hero 区域 -->
+    <section class="hero-bg min-h-screen flex items-center relative overflow-hidden" id="hero">
+      <div class="container mx-auto px-6 py-12 relative z-10">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+          <div class="relative">
+            <div class="gsap-reveal">
+              <div class="inline-flex items-center mb-6">
+                <img alt="像素艺术风格爪印应用图标" class="w-16 h-16 mr-4 pixel-icon" src="https://kimi-web-img.moonshot.cn/img/www.shutterstock.com/92f5f4755c08fbd5bf41f755fece04ca6e3a3ef5.jpg" referrerpolicy="no-referrer"/>
+                <div>
+                  <h1 class="pixel-font text-6xl font-black tracking-wider" style="color: var(--cute-chocolate);">
+                    PAW<br/>TRACE
+                  </h1>
+                  <p class="text-xl mt-2 font-medium" style="color: #8a6bc9;">智能宠物生活平台</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="gsap-reveal">
+              <h2 class="text-2xl md:text-3xl font-bold mb-6 leading-tight" style="color: var(--cute-chocolate);">
+                宠物的健康管理、社交互动和遛狗路线
+                <br/>
+                <span style="color: #ff85a2;">是否总让你烦恼？</span>
+                <br/>
+                <span style="color: #6a9bd8;">PAW TRACE帮你一站式解决！</span>
+              </h2>
+            </div>
+
+            <div class="gsap-reveal">
+              <p class="text-lg mb-8 leading-relaxed" style="color: #7a5548;">
+                轻松记录宠物健康档案，发现宠物友好场所，结识更多宠物朋友。
+                让宠物与主人一起享受运动、社交、健康生活！
+              </p>
+            </div>
+
+            <div class="gsap-reveal">
+              <button class="cute-btn px-8 py-4 text-lg rounded-lg mb-4">
+                <i class="fas fa-download mr-2"></i>立即下载
+              </button>
+              <p class="text-sm" style="color: #9e8a7d;">支持iOS和Android设备</p>
+            </div>
+          </div>
+
+          <div class="relative">
+            <div class="gsap-reveal">
+              <img alt="像素艺术风格的宠物狗和猫在公园玩耍" class="w-full h-96 object-contain animated-pixel" src="https://kimi-web-img.moonshot.cn/img/cdnfile.ksrmtzx.com/d2dd23f39f2d135ecd7e5bdfb5df5d82827eef64.jpg" referrerpolicy="no-referrer"/>
+            </div>
+            <div class="absolute top-0 right-0 gsap-reveal">
+              <div class="w-8 h-8 rounded-sm animated-pixel" style="animation-delay: 0.5s; background-color: var(--cute-mint); border: 2px solid #7bc9a8;"></div>
+            </div>
+            <div class="absolute bottom-0 left-0 gsap-reveal">
+              <div class="w-6 h-6 rounded-sm animated-pixel" style="animation-delay: 1s; background-color: var(--cute-lavender); border: 2px solid #b89bd6;"></div>
+            </div>
+            <div class="absolute top-12 left-12 gsap-reveal">
+              <div class="w-5 h-5 rounded-sm animated-pixel" style="animation-delay: 1.5s; background-color: #ffd3b6; border: 2px solid #ffb88c;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 品牌故事 -->
+    <section class="py-20 bg-white" id="brand-story">
+      <div class="container mx-auto px-6">
+        <div class="text-center mb-16">
+          <h2 class="section-title gsap-reveal mb-6">品牌故事</h2>
+          <p class="text-xl text-gray-600 max-w-3xl mx-auto gsap-reveal">
+            作为宠物app团队，我们深知宠物主人在管理宠物健康、寻找合适的遛狗场所和社交互动方面所面临的挑战。
+            PAW TRACE应运而生，致力于为宠物和主人提供一个便捷、智能的生活平台。
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8">
+          <div class="pixel-card p-8 text-center gsap-reveal">
+            <img alt="像素风格的医疗箱图标" class="w-16 h-16 mx-auto mb-4 pixel-icon" src="https://kimi-web-img.moonshot.cn/img/pic.616pic.com/019a459071e5134159def818167f03c40d813150.jpg" referrerpolicy="no-referrer"/>
+            <h3 class="pixel-font text-xl font-bold mb-3">便捷管理</h3>
+            <p class="text-gray-600">一站式记录宠物健康档案，智能提醒重要日期</p>
+          </div>
+
+          <div class="pixel-card p-8 text-center gsap-reveal">
+            <img alt="像素风格的心形图标" class="w-16 h-16 mx-auto mb-4 pixel-icon" src="https://kimi-web-img.moonshot.cn/img/pic.pngsucai.com/7827d60384f3b675eb93f5f76eee6adb59e35733.webp" referrerpolicy="no-referrer"/>
+            <h3 class="pixel-font text-xl font-bold mb-3">温暖社交</h3>
+            <p class="text-gray-600">结识新宠物朋友，分享养宠快乐时光</p>
+          </div>
+
+          <div class="pixel-card p-8 text-center gsap-reveal">
+            <img alt="像素艺术风格的地图和路线" class="w-16 h-16 mx-auto mb-4 pixel-icon" src="https://kimi-web-img.moonshot.cn/img/pic.616pic.com/e82548493aa5a4267f5a00f736db0c9b6d1901ab.jpg" referrerpolicy="no-referrer"/>
+            <h3 class="pixel-font text-xl font-bold mb-3">智能规划</h3>
+            <p class="text-gray-600">发现宠物友好场所，规划最佳遛狗路线</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 健康管理功能 - 替换为宠物档案图片 -->
+    <section class="py-20 bg-gray-50" id="feature-health">
+      <div class="container mx-auto px-6">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+          <div class="gsap-reveal">
+            <h2 class="pixel-font text-4xl font-bold mb-6 text-gray-800">
+              <span class="text-green-600">宠物健康管理</span>
+              <br/>一站式宠物健康管家
+            </h2>
+            <p class="text-lg text-gray-600 mb-6 leading-relaxed">
+              疫苗、驱虫、体检，所有健康记录一键管理，重要日期智能提醒，让宠物健康无忧。
+            </p>
+
+            <div class="space-y-4">
+              <div class="flex items-center">
+                <div class="w-12 h-12 bg-green-500 rounded-lg border-2 border-green-700 flex items-center justify-center mr-4">
+                  <i class="fas fa-plus text-white"></i>
+                </div>
+                <div>
+                  <h4 class="font-semibold">创建档案</h4>
+                  <p class="text-sm text-gray-600">为每只宠物建立专属健康档案</p>
+                </div>
+              </div>
+
+              <div class="flex items-center">
+                <div class="w-12 h-12 bg-blue-500 rounded-lg border-2 border-blue-700 flex items-center justify-center mr-4">
+                  <i class="fas fa-calendar-alt text-white"></i>
+                </div>
+                <div>
+                  <h4 class="font-semibold">智能提醒</h4>
+                  <p class="text-sm text-gray-600">系统自动计算并推送下次护理提醒</p>
+                </div>
+              </div>
+
+              <div class="flex items-center">
+                <div class="w-12 h-12 bg-purple-500 rounded-lg border-2 border-purple-700 flex items-center justify-center mr-4">
+                  <i class="fas fa-chart-line text-white"></i>
+                </div>
+                <div>
+                  <h4 class="font-semibold">数据可视化</h4>
+                  <p class="text-sm text-gray-600">图表化展示宠物成长趋势</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 修改：替换为宠物档案卡片展示 -->
+          <div class="gsap-reveal">
+            <div class="grid md:grid-cols-2 gap-6">
+              <!-- 小黑档案 -->
+              <div class="pet-profile-card bg-white p-5">
+                <div class="text-center mb-4">
+                  <div class="w-20 h-20 mx-auto rounded-full bg-amber-200 flex items-center justify-center mb-3">
+                    <i class="fas fa-dog text-3xl" style="color: #8b4513;"></i>
+                  </div>
+                  <h3 class="pixel-font text-xl font-bold" style="color: var(--cute-chocolate);">Xiao Hei</h3>
+                  <p class="text-sm text-gray-500">小黑</p>
+                </div>
+                <div class="space-y-2 text-sm">
+                  <div><span class="font-semibold">品种:</span> Labrador</div>
+                  <div><span class="font-semibold">年龄:</span> 2 years</div>
+                  <div><span class="font-semibold">性别:</span> Male</div>
+                  <div>
+                    <span class="font-semibold">性格:</span>
+                    <div class="flex flex-wrap gap-1 mt-1">
+                      <span class="px-2 py-1 rounded-full text-xs" style="background: #a8e6cf; color: #2c5f4a;">Friendly</span>
+                      <span class="px-2 py-1 rounded-full text-xs" style="background: #ffd3b6; color: #8b4a2d;">Active</span>
+                      <span class="px-2 py-1 rounded-full text-xs" style="background: #d9c2f0; color: #4a2c6e;">Cuddly</span>
+                    </div>
+                  </div>
+                  <div class="pt-2 border-t">
+                    <div class="flex justify-between items-center">
+                      <span class="font-semibold text-xs">疫苗状态:</span>
+                      <span class="text-green-600 text-xs">✓ Up to date</span>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1">下次: 2023/12/15</div>
+                  </div>
+                </div>
+                <button class="w-full mt-4 py-2 text-sm font-bold rounded-lg" style="background: var(--cute-pink); color: white;">
+                  View Full Profile
+                </button>
+              </div>
+
+              <!-- 小白档案 -->
+              <div class="pet-profile-card bg-white p-5">
+                <div class="text-center mb-4">
+                  <div class="w-20 h-20 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                    <i class="fas fa-cat text-3xl" style="color: #6c5ce7;"></i>
+                  </div>
+                  <h3 class="pixel-font text-xl font-bold" style="color: var(--cute-chocolate);">Xiao Bai</h3>
+                  <p class="text-sm text-gray-500">小白</p>
+                </div>
+                <div class="space-y-2 text-sm">
+                  <div><span class="font-semibold">品种:</span> Ragdoll</div>
+                  <div><span class="font-semibold">年龄:</span> 1 year</div>
+                  <div><span class="font-semibold">性别:</span> Female</div>
+                  <div>
+                    <span class="font-semibold">性格:</span>
+                    <div class="flex flex-wrap gap-1 mt-1">
+                      <span class="px-2 py-1 rounded-full text-xs" style="background: #a8e6cf; color: #2c5f4a;">Quiet</span>
+                      <span class="px-2 py-1 rounded-full text-xs" style="background: #ffd3b6; color: #8b4a2d;">Independent</span>
+                      <span class="px-2 py-1 rounded-full text-xs" style="background: #d9c2f0; color: #4a2c6e;">Affectionate</span>
+                    </div>
+                  </div>
+                  <div class="pt-2 border-t">
+                    <div class="flex justify-between items-center">
+                      <span class="font-semibold text-xs">疫苗状态:</span>
+                      <span class="text-green-600 text-xs">✓ Up to date</span>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1">下次: 2024/01/20</div>
+                  </div>
+                </div>
+                <button class="w-full mt-4 py-2 text-sm font-bold rounded-lg" style="background: var(--cute-pink); color: white;">
+                  View Full Profile
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 社交互动功能 -->
+    <section class="py-20 bg-white" id="feature-social">
+      <div class="container mx-auto px-6">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+          <div class="order-2 lg:order-1 gsap-reveal">
+            <img alt="像素艺术风格的宠物社交界面" class="w-full rounded-lg border-4 border-gray-300 shadow-lg" src="https://kimi-web-img.moonshot.cn/img/imgslim.geekpark.net/d4069fb008aa8aa4b34f3704406202eced05d9d7.jpg" referrerpolicy="no-referrer"/>
+          </div>
+
+          <div class="order-1 lg:order-2 gsap-reveal">
+            <h2 class="pixel-font text-4xl font-bold mb-6 text-gray-800">
+              <span class="text-orange-600">宠主社交互动</span>
+              <br/>发现身边的宠友圈
+            </h2>
+            <p class="text-lg text-gray-600 mb-6 leading-relaxed">
+              分享养宠日常，交流养宠心得，和志同道合的宠主们一起，让养宠生活更精彩。
+            </p>
+
+            <div class="space-y-4">
+              <div class="flex items-center">
+                <div class="w-12 h-12 bg-orange-500 rounded-lg border-2 border-orange-700 flex items-center justify-center mr-4">
+                  <i class="fas fa-camera text-white"></i>
+                </div>
+                <div>
+                  <h4 class="font-semibold">动态分享</h4>
+                  <p class="text-sm text-gray-600">发布宠物照片、视频和文字动态</p>
+                </div>
+              </div>
+
+              <div class="flex items-center">
+                <div class="w-12 h-12 bg-pink-500 rounded-lg border-2 border-pink-700 flex items-center justify-center mr-4">
+                  <i class="fas fa-comments text-white"></i>
+                </div>
+                <div>
+                  <h4 class="font-semibold">话题讨论</h4>
+                  <p class="text-sm text-gray-600">参与热门话题，获取实用建议</p>
+                </div>
+              </div>
+
+              <div class="flex items-center">
+                <div class="w-12 h-12 bg-yellow-500 rounded-lg border-2 border-yellow-700 flex items-center justify-center mr-4">
+                  <i class="fas fa-users text-white"></i>
+                </div>
+                <div>
+                  <h4 class="font-semibold">线下活动</h4>
+                  <p class="text-sm text-gray-600">发现附近遛狗活动，结交新朋友</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 路线规划功能 -->
+    <section class="py-20 bg-gray-50" id="feature-route">
+      <div class="container mx-auto px-6">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+          <div class="gsap-reveal">
+            <h2 class="pixel-font text-4xl font-bold mb-6 text-gray-800">
+              <span class="text-blue-600">溜宠路线规划</span>
+              <br/>探索新世界，遛弯不无聊
+            </h2>
+            <p class="text-lg text-gray-600 mb-6 leading-relaxed">
+              PAW TRACE内置宠物友好地图，为您推荐附近的公园、宠物店、咖啡馆等可携宠进入的场所。
+              智能规划遛狗路线，记录运动轨迹，让每一次出行都充满惊喜。
+            </p>
+
+            <div class="bg-white p-6 rounded-lg border-4 border-gray-300 mb-6">
+              <h4 class="font-semibold mb-3">智能路线规划</h4>
+              <div class="space-y-2 text-sm">
+                <div class="flex items-center">
+                  <i class="fas fa-map-marker-alt text-blue-500 mr-2"></i>
+                  <span>发现全城宠物友好场所</span>
+                </div>
+                <div class="flex items-center">
+                  <i class="fas fa-route text-green-500 mr-2"></i>
+                  <span>根据需求智能推荐路线</span>
+                </div>
+                <div class="flex items-center">
+                  <i class="fas fa-fire text-red-500 mr-2"></i>
+                  <span>记录运动量和消耗卡路里</span>
+                </div>
+              </div>
+            </div>
+
+            <button class="pixel-btn px-6 py-3">
+              <i class="fas fa-map mr-2"></i>查看地图预览
+            </button>
+          </div>
+
+          <div class="gsap-reveal w-full">
+            <div id="map" class="w-full h-96 rounded-lg border-4 border-gray-300 shadow-lg"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 行动呼吁区域 - 修改为可爱配色 -->
+    <section class="py-20 relative overflow-hidden" id="cta" style="background: linear-gradient(135deg, var(--cute-purple) 0%, var(--cute-blue) 50%, var(--cute-yellow) 100%);">
+      <div class="container mx-auto px-6 text-center relative z-10">
+        <div class="gsap-reveal">
+          <h2 class="pixel-font text-5xl font-bold mb-6" style="color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+            开启宠物新体验
+          </h2>
+          <p class="text-xl mb-8 max-w-2xl mx-auto" style="color: #f8f9fa; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">
+            加入我们，和成千上万的宠主一起，享受更智能、更快乐的宠物生活！
+          </p>
+        </div>
+
+        <div class="gsap-reveal">
+          <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+            <button class="cute-btn px-8 py-4 text-lg rounded-lg flex items-center justify-center gap-2">
+              <i class="fab fa-apple text-xl"></i>
+              <span>App Store下载</span>
+            </button>
+            <button class="cute-btn px-8 py-4 text-lg rounded-lg flex items-center justify-center gap-2">
+              <i class="fab fa-google-play text-xl"></i>
+              <span>Google Play下载</span>
+            </button>
+          </div>
+          <p class="text-sm" style="color: #f8f9fa; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">
+            支持iOS和Android设备 • 完全免费下载
+          </p>
+        </div>
+      </div>
+      <div class="absolute inset-0 opacity-30" style="background-image: url('data:image/svg+xml,%3Csvg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E'); background-repeat: repeat;"></div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="bg-gray-900 text-white py-12">
+      <div class="container mx-auto px-6">
+        <div class="grid md:grid-cols-4 gap-8">
+          <div>
+            <div class="flex items-center mb-4">
+              <img alt="像素艺术风格爪印应用图标" class="w-8 h-8 mr-2 pixel-icon" src="https://kimi-web-img.moonshot.cn/img/www.shutterstock.com/92f5f4755c08fbd5bf41f755fece04ca6e3a3ef5.jpg" referrerpolicy="no-referrer"/>
+              <span class="pixel-font font-bold text-xl">PAW TRACE</span>
+            </div>
+            <p class="text-gray-400 text-sm">
+              智能宠物生活平台，让每一刻都充满爱与欢笑。
+            </p>
+          </div>
+
+          <div>
+            <h4 class="font-semibold mb-4">产品功能</h4>
+            <ul class="space-y-2 text-sm text-gray-400">
+              <li>
+                <a class="hover:text-white transition-colors" href="#feature-health">健康管理</a>
+              </li>
+              <li>
+                <a class="hover:text-white transition-colors" href="#feature-social">社交互动</a>
+              </li>
+              <li>
+                <a class="hover:text-white transition-colors" href="#feature-route">路线规划</a>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 class="font-semibold mb-4">关于我们</h4>
+            <ul class="space-y-2 text-sm text-gray-400">
+              <li>
+                <a class="hover:text-white transition-colors" href="#">品牌故事</a>
+              </li>
+              <li>
+                <a class="hover:text-white transition-colors" href="#">联系我们</a>
+              </li>
+              <li>
+                <a class="hover:text-white transition-colors" href="#">隐私政策</a>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 class="font-semibold mb-4">关注我们</h4>
+            <div class="flex space-x-4">
+              <a class="text-gray-400 hover:text-white transition-colors" href="#">
+                <i class="fab fa-weixin text-xl"></i>
+              </a>
+              <a class="text-gray-400 hover:text-white transition-colors" href="#">
+                <i class="fab fa-weibo text-xl"></i>
+              </a>
+              <a class="text-gray-400 hover:text-white transition-colors" href="#">
+                <i class="fab fa-tiktok text-xl"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
+          <p> 2025 PAW TRACE. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Leaflet 地图脚本 -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // 页面加载完成后初始化地图
+        document.addEventListener('DOMContentLoaded', function() {
+            const map = L.map('map').setView([39.9042, 116.4074], 13);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            const petFriendlyPlaces = [
+                {lat: 39.9042, lng: 116.4074, name: "朝阳公园", desc: "大型宠物友好公园，有专用宠物活动区"},
+                {lat: 39.9142, lng: 116.4174, name: "萌宠咖啡馆", desc: "欢迎带宠物入内的特色咖啡馆"},
+                {lat: 39.8942, lng: 116.3974, name: "爱宠动物医院", desc: "24小时宠物医疗服务"},
+                {lat: 39.9242, lng: 116.4274, name: "宠物乐园", desc: "专业宠物运动与训练场地"}
+            ];
+
+            petFriendlyPlaces.forEach(place => {
+                const marker = L.marker([place.lat, place.lng]).addTo(map);
+                marker.bindPopup(`
+                    <div style="font-family: 'Rajdhani', sans-serif; min-width: 150px;">
+                        <strong style="color: #ff85a2;">${place.name}</strong><br/>
+                        <span style="font-size: 13px; color: #666;">${place.desc}</span>
+                    </div>
+                `);
+            });
+
+            L.control.scale({
+                position: 'bottomleft',
+                metric: true,
+                imperial: false
+            }).addTo(map);
+
+            const targetUrl = 'https://subthalamic-prolately-alfonso.ngrok-free.dev';
+            document.querySelectorAll('button').forEach(btn => {
+                btn.addEventListener('click', () => window.open(targetUrl, '_blank'));
+            });
+        });
+
+        // GSAP ScrollTrigger 动画
+        if (typeof gsap !== 'undefined') {
+            gsap.registerPlugin(ScrollTrigger);
+
+            gsap.timeline()
+                .from(".hero-bg h1", { duration: 1, y: 50, opacity: 0, ease: "power2.out" })
+                .from(".hero-bg h2", { duration: 1, y: 30, opacity: 0, ease: "power2.out" }, "-=0.5")
+                .from(".hero-bg p", { duration: 1, y: 20, opacity: 0, ease: "power2.out" }, "-=0.5")
+                .from(".cute-btn", { duration: 1, scale: 0.8, opacity: 0, ease: "back.out(1.7)" }, "-=0.3");
+
+            gsap.utils.toArray(".gsap-reveal").forEach(element => {
+                gsap.fromTo(element, 
+                    { opacity: 0, y: 30 },
+                    {
+                        opacity: 1,
+                        y: 0,
+                        duration: 0.8,
+                        ease: "power2.out",
+                        scrollTrigger: {
+                            trigger: element,
+                            start: "top 95%",
+                            toggleActions: "play none none reverse"
+                        }
+                    }
+                );
+            });
+        }
+
+        // 平滑滚动导航
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // 按钮点击反馈
+        document.querySelectorAll('.cute-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.style.transform = 'translateY(4px)';
+                this.style.boxShadow = 'none';
+                setTimeout(() => {
+                    this.style.transform = '';
+                    this.style.boxShadow = '0 2px 0 #d4627d';
+                }, 150);
+            });
+        });
+
+        // Hero 区域视差效果
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const hero = document.querySelector('.hero-bg');
+            if (hero) {
+                hero.style.transform = `translateY(${scrolled * 0.5}px)`;
+            }
+        });
+    </script>
+
+  
+
+</body></html>
